@@ -1,3 +1,13 @@
+/*
+Código realizado por: Cruz Villalba Roberto Carlos
+Grupo: 602-A        Materia: Sistemas Operativos
+UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA
+Licencia: libre
+
+El programa se compila con: gcc -Wall hilos.c -lpthread -o hilos
+*/
+
+
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -25,11 +35,12 @@ int main(int argC, char *argV[]){
 
     //crea n hilos
     for (int i = 0; i < n ; i++) {
- 		// Coloca atributo predeterminados o coloque NULL
  		pthread_attr_init(&attr);
 		hilos[i].numeroHilo=i;
  		pthread_create(&hilos[i].tId, &attr, funcionHilo, &hilos[i]);
 	}
+
+    //espera que cada hilo termine
     for (int i = 0; i < n; i++){
  		pthread_join(hilos[i].tId, NULL);
  		printf("Termino el hilo con id = %u\n", (unsigned int) hilos[i].identificador);
