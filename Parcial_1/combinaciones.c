@@ -5,6 +5,9 @@
 #include <stdlib.h>
 
 int esHijo(pid_t, pid_t *, int);
+int factorial(int);
+int combinaciones(int, int);
+
 int main(int argC, char *argV[])
 {
 
@@ -37,8 +40,7 @@ int main(int argC, char *argV[])
         if (hijos[i] == 0)
         {
             printf("Hijo numero: %d. PID: %ld. PPID: %ld\n", i, (long)getpid(), (long)getppid());
-            for (int j = 0; j < 1000; j++)
-                ;
+            printf("Combinacion n=%d en k=%d, = %d\n", n, i, combinaciones(n, i));
             // exit(EXIT_SUCCESS);
             return 0;
         }
@@ -72,3 +74,14 @@ int esHijo(pid_t hijo, pid_t hijos[], int tamaño)
     }
     return 0;
 }
+
+int factorial(int numero) {
+    if (numero == 1 || numero == 0)
+        return 1;
+    return numero * factorial(numero -1);
+}
+
+int combinaciones(int n, int k) {
+    return factorial(n) / (factorial(n - k) * factorial(k));
+}
+
