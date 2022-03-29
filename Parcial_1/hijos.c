@@ -1,8 +1,15 @@
 /*
-Código realizado por: Cruz Villalba Roberto Carlos Y Palestino Hernández Emanuel
-Grupo: 602-A        Materia: Sistemas Operativos
-UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA
-Licencia: libre
+**************************************Hijos.c*****************************************
+**                                                                                  **
+**  Descipción: Este programa crea n hijos mediante fork (n recibida por linea      **
+**  de comandos) cada hijo imprime el numero i de hijo que es y el padre            **
+**  espera la terminación cada hijo e imprime el PID del hijo que ha terminado.     **
+**                                                                                  **
+**  CCBY: Cruz Villalba Roberto Carlos Y Palestino Hernández Emanuel                **
+**  Grupo: 602-A        Materia: Sistemas Operativos                                **
+**  UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA                                           **
+**  Licencia: libre                                                                 **
+**************************************************************************************
 */
 
 #include <stdio.h>

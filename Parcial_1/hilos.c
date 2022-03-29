@@ -1,11 +1,20 @@
 /*
-Código realizado por: Cruz Villalba Roberto Carlos
-Grupo: 602-A        Materia: Sistemas Operativos
-UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA
-Licencia: libre
-
-El programa se compila con: gcc -Wall hilos.c -lpthread -o hilos
+**************************************Hilos.c*****************************************
+**                                                                                  **
+**  Descipción: Este programa crea n hilos mediante pthread (n recibida por linea   **
+**  de comandos) cada hilo imprime el numero i de hilo que es y el padre            **
+**  espera la terminación cada hilo e imprime el TID del hilo que ha terminado.     **
+**                                                                                  **
+**  CCBY: Cruz Villalba Roberto Carlos                                              **
+**  Grupo: 602-A        Materia: Sistemas Operativos                                **
+**  UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA                                           **
+**  Licencia: libre                                                                 **
+**************************************************************************************
 */
+
+
+
+
 
 
 #include <pthread.h>
