@@ -42,8 +42,8 @@ int main(int argC, char *argV[]) {
                     break;
                 case 2:
                     sprintf(nuevoDirectorio, "%s/tareajeje", informacionUsuario->pw_dir);
-                    printf("Directorio Nuevo Creado!!!\n\n");
                     mkdir(nuevoDirectorio, 0777);
+                    printf("Directorio Nuevo Creado!!!\n\n");
                     break;
             }
 
