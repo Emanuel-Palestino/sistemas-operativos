@@ -45,7 +45,7 @@ int main(int argC, char *argV[]) {
     printf("k: %d\n",k);
 
     pthread_attr_t attr;
-	hilo hilos[n];
+	hilo hilos[k+1];
     
     
     //crea k hilos
@@ -59,7 +59,7 @@ int main(int argC, char *argV[]) {
     // Sumar y mostrar el resultado
     int resultadoFinal = 0;
     //espera que cada hilo termine
-    for (int i = 0; i < n+1; i++){
+    for (int i = 0; i < k+1; i++){
  		pthread_join(hilos[i].tId, NULL);
          resultadoFinal += hilos[i].resultadoCombinatoria;
     }
