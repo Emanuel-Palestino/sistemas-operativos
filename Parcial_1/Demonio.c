@@ -1,11 +1,20 @@
+/*
+ * 
+ * Crea un demonio que cada 30 segundos escribe en un archivo
+ *
+ * CCBY: Palestino Hernández Emanuel
+ * Licencia: Apache 2.0
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 int main() {
-    int estado;
     pid_t hijo;
+    FILE *archivo;
 
     if ((hijo = fork()) == -1) {
         perror("Error al crear hijo");
@@ -13,11 +22,12 @@ int main() {
     }
 
     if (hijo == 0) {
-        printf("Hijo\n");
         setsid();
         while(1) {
-            printf("SOY EL DEMONIO Y TENGO EL PID: %ld ASOCIADO.\n", (long) getpid());
+            archivo = fopen("demonio.txt", "a");
+            fprintf(archivo, "SOY EL DEMONIO Y TENGO EL PID: %ld ASOCIADO.\n", (long) getpid());
             sleep(30);
+            fclose(archivo);
         }
     }
 
