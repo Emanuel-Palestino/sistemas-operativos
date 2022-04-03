@@ -1,3 +1,14 @@
+/*
+ * 
+ * Crea dos procesos para simular un chat entre dos participantes. La comunicación
+ * se realiza a trabes de 2 tuberías(pipes) y termina cuando cualquiera de los dos
+ * escribe mata kondo.
+ *
+ * CCBY: Palestino Hernández Emanuel
+ * Licencia: Apache 2.0
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -36,7 +47,6 @@ int main() {
     } else {
         close(fdPadre[0]);
         write(fdPadre[1], mensaje, 255);
-
     }
 
     while(strncmp(mensaje, "mata kondo", 10) != 0) {
@@ -47,11 +57,11 @@ int main() {
             read(fdPadre[0], mensaje, 255);
 
             if (strncmp(mensaje, "mata kondo", 10) == 0)
-                exit(EXIT_SUCCESS);
+                break;
 
             printf("\n----------------------------------------------\n");
-            printf("\nInvitado 2 dijo: %s", mensaje);
-            printf("Mensaje a Invitado 2:\n");
+            printf("\nInvitado 2 dijo:\n\t%s", mensaje);
+            printf("\nMensaje a Invitado 2:\n\t");
             fgets(mensaje, 255, stdin);
             close(fdHijo[0]);
             write(fdHijo[1], mensaje, 255);
@@ -62,11 +72,11 @@ int main() {
             read(fdHijo[0], mensaje, 255);
 
             if (strncmp(mensaje, "mata kondo", 10) == 0)
-                exit(EXIT_SUCCESS);
+                break;
 
             printf("\n----------------------------------------------\n");
-            printf("\nInvitado 1 dijo: %s", mensaje);
-            printf("Mensaje a Invitado 1:\n");
+            printf("\nInvitado 1 dijo:\n\t%s", mensaje);
+            printf("\nMensaje a Invitado 1:\n\t");
             fgets(mensaje, 255, stdin);
             close(fdPadre[0]);
             write(fdPadre[1], mensaje, 255);
@@ -74,6 +84,5 @@ int main() {
     }
 
     exit(EXIT_SUCCESS);
-
 }
 
