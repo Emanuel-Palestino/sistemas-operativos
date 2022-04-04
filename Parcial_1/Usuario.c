@@ -1,3 +1,15 @@
+/*
+ * 
+ * Programa que crea 3 procesos hijos que hacen lo siguiente:
+ * Proceso 1: Busca y muestra toda la información del usuario (dentro del archivo passwd) que se ingresó en la línea de comandos
+ * Proceso 2: Manda un correo al usuario
+ * Proceso 3: Crea un directorio nuevo dentro del directorio en Home del usuario
+ *
+ * CCBY: Palestino Hernández Emanuel
+ * Licencia: Apache 2.0
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -6,7 +18,11 @@
 #include <pwd.h>
 #include <sys/stat.h>
 
+// Función para encontrar coincidencia de un hijo en un arreglo.
+// Como parámetros recibe el hijo, el apuntador al arreglo de hijos y el tamaño del arreglo
+// Devuelve el indice del arreglo donde se encuentra el hijo o -1 si no lo encontró
 int esHijo(pid_t, pid_t *, int);
+
 int main(int argC, char *argV[]) {
     if (argC < 2) {
         printf("Ejcución incorrecta. Uso: ./usuario <nombreUsuario>\n");
@@ -54,9 +70,8 @@ int main(int argC, char *argV[]) {
     // Esperar a la finalización de los hijos
     for (int i = 0; i < 3; i++) {
        int posicionHijo = esHijo(wait(&estado), hijos, 3);
-       if (posicionHijo == -1) {
+       if (posicionHijo == -1)
            perror("Hijo terminado anormalmente");
-       }
     }
 
     exit(EXIT_SUCCESS);
