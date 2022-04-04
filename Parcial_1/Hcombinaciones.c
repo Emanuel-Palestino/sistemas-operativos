@@ -8,7 +8,7 @@
 **  CCBY: Cruz Villalba Roberto Carlos                                              **
 **  Grupo: 602-A        Materia: Sistemas Operativos                                **
 **  UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA                                           **
-**  Licencia: libre                                                                 **
+**  Licencia: Apache 2.0                                                                 **
 **************************************************************************************
 */
 
@@ -17,8 +17,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+// Calcula el factorial de un número
 int factorial(int);
+// Calcula las combinaciones de n en k
 int combinaciones(int, int);
 
 typedef struct {

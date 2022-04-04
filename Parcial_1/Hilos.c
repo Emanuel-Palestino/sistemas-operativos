@@ -8,7 +8,7 @@
 **  CCBY: Cruz Villalba Roberto Carlos                                              **
 **  Grupo: 602-A        Materia: Sistemas Operativos                                **
 **  UNIVERSIDAD TECNOLÓGICA DE LA MIXTECA                                           **
-**  Licencia: libre                                                                 **
+**  Licencia: Apache 2.0                                                                 **
 **************************************************************************************
 */
 
