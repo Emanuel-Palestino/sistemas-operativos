@@ -11,6 +11,7 @@
 #include <errno.h>
 
 int **matriz = NULL;
+int cola;
 
 typedef struct mensaje {
 	long tipo;
@@ -19,11 +20,16 @@ typedef struct mensaje {
 	char texto[80];
 } mensaje;
 
+typedef struct propiedadesHilo {
+	int tipo;
+	int resultado;
+} pHilo;
+
 // Función de lee una matriz desde un archivo
 int **leerMatriz(FILE *, char *, int *);
 void *resolucion(void *);
-void enviarMensaje(int, int);
-void recibirMensaje(int, int);
+void enviarMensaje(int, int, mensaje);
+void recibirMensaje(int, int, mensaje *);
 
 int main(int argC, char *argV[]) {
 	// Leer matriz del archivo
@@ -31,55 +37,64 @@ int main(int argC, char *argV[]) {
 	int tamaño = 0;
 	matriz = leerMatriz(archivoMatriz, "matriz.txt", &tamaño);
 
-	// Hilos
-	pthread_t hilo1;
-	pthread_attr_t attr;
-
-	pthread_attr_init(&attr);
-	pthread_create(&hilo1, &attr, resolucion, NULL);
-
 	// Cola mensajes
 	int llave;
 	llave = ftok(argV[0], 'e');
-	int cola;
 	if ((cola = msgget(llave, IPC_CREAT | 0666)) == -1) {
 		perror("Error al crear la cola");
 		exit(EXIT_FAILURE);
 	}
 
-	// Prueba mensajes
-	enviarMensaje(cola, 2);
-	recibirMensaje(cola, 1);
-	recibirMensaje(cola, 2);
-	recibirMensaje(cola, 2);
+	mensaje msjTest;
+	enviarMensaje(cola, 2, msjTest);
+	// Mensajes iniciales (cofactores)
+	for (int i = 0; i < tamaño; i++) {
+		mensaje msj;
+		msj.i = i;
+		enviarMensaje(cola, 1, msj);
+	}
+
+	// Hilos
+	pthread_t hilos[tamaño];
+	pthread_attr_t attr;
+
+	// Cofactores Iniciales
+	for (int i = 0; i < tamaño; i++) {
+		pHilo ph;
+		ph.tipo = 1;
+		pthread_attr_init(&attr);
+		pthread_create(&hilos[i], &attr, resolucion, &ph);
+	}
 
 	// Esperar hilos
-	pthread_join(hilo1, NULL);
+	for (int i = 0; i < tamaño; i++) {
+		pthread_join(hilos[i], NULL);
+	}
 
 	exit(EXIT_SUCCESS);
 }
 
-void *resolucion(void *) {
+void *resolucion(void *ph) {
+	pHilo p = *((pHilo *) ph);
+	mensaje m;
+	recibirMensaje(cola, p.tipo, &m);
 	pthread_exit(0);
 }
 
-void enviarMensaje(int idCola, int tipoMensaje) {
+void enviarMensaje(int idCola, int tipoMensaje, mensaje msj) {
 	// Crear mensaje
-	mensaje msj;
 	msj.tipo = tipoMensaje;
-	snprintf(msj.texto, sizeof(msj.texto), "El mensaje es de tipo %d", tipoMensaje);
 
 	// Enviar mensaje
-	if (msgsnd(idCola, (void *) &msj, sizeof(msj.texto), IPC_NOWAIT) == -1) {
+	if (msgsnd(idCola, (void *) &msj, sizeof(msj.i), IPC_NOWAIT) == -1) {
 		perror("Error al enviar mensaje");
 		exit(EXIT_FAILURE);
 	}
 }
 
-void recibirMensaje(int idCola, int tipoMensaje) {
-	mensaje msj;
+void recibirMensaje(int idCola, int tipoMensaje, mensaje *msj) {
 	// Recibir mensaje
-	if (msgrcv(idCola, (void *) &msj, sizeof(msj.texto), tipoMensaje, MSG_NOERROR|IPC_NOWAIT) == -1) {
+	if (msgrcv(idCola, (void *) msj, sizeof(msj->i), tipoMensaje, MSG_NOERROR|IPC_NOWAIT) == -1) {
 		if (errno != ENOMSG) {
 			perror("Error al recibir mensaje");
 			exit(EXIT_FAILURE);
@@ -87,7 +102,7 @@ void recibirMensaje(int idCola, int tipoMensaje) {
 
 		printf("No hay mensaje para leer\n");
 	} else
-		printf("Mensaje recibido: %s\n", msj.texto);
+		printf("Mensaje recibido: %d\n", msj->i);
 }
 
 int **leerMatriz(FILE *archivo, char *nombre, int *tamaño) {
