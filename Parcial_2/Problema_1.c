@@ -1,7 +1,4 @@
 // Problema 1
-// Calcular el determinante de una matriz 2x2
-// Calcular el determinante de una matriz 3x3
-// Calcular el determinante de una matriz 4x4
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,9 +6,11 @@
 #include <sys/types.h>
 #include <sys/msg.h>
 #include <errno.h>
+#include <semaphore.h>
 
 int **matriz = NULL;
 int cola;
+sem_t semaforo;
 
 typedef struct contenido {
 	int **mat;
@@ -42,7 +41,7 @@ int main(int argC, char *argV[]) {
 	// Leer matriz del archivo
 	FILE *archivoMatriz = NULL;
 	int tamaño = 0;
-	matriz = leerMatriz(archivoMatriz, "matriz.txt", &tamaño);
+	matriz = leerMatriz(archivoMatriz, "matriz6.txt", &tamaño);
 
 	// Cola mensajes
 	int llave;
@@ -51,6 +50,9 @@ int main(int argC, char *argV[]) {
 		perror("Error al crear la cola");
 		exit(EXIT_FAILURE);
 	}
+
+	// Inicialización del semaforo
+	sem_init(&semaforo, 0, 1);
 
 	// Mensajes iniciales (Cofactor a calcular)
 	for (int i = 0; i < tamaño; i++) {
@@ -82,7 +84,7 @@ int main(int argC, char *argV[]) {
 	long resultadoFinal = 0;
 	for (int i = 0; i < tamaño; i++) {
 		resultadoFinal += resultadoMenores[i].resultado;
-		printf("res cofactor = %d\n", resultadoMenores[i].resultado);
+		//printf("res cofactor = %d\n", resultadoMenores[i].resultado);
 	}
 
 	printf("Resultado Final = %ld\n", resultadoFinal);
@@ -94,10 +96,42 @@ void *resolucion(void *ph) {
 	pHilo *p = (pHilo *) ph;
 	mensaje m;
 	recibirMensaje(cola, p->tipo, &m);
-	if (p->tipo == 2) {
+	if (m.tipo == 2) {
 		p->resultado = m.contenido.factor * resolver2x2(m.contenido.mat);
 	} else {
+		int tamaño = m.tipo;
+		// Mensajes iniciales (Cofactor a calcular)
+		for (int i = 0; i < tamaño; i++) {
+			mensaje msj;
+			msj.tipo = tamaño - 1;
+			msj.contenido.factor = m.contenido.factor * potencia(-1, i) * m.contenido.mat[0][i];
+			msj.contenido.mat = obtenerMenor(m.contenido.mat, tamaño, 0, i);
+			enviarMensaje(cola, msj.tipo, msj);
+		}
 
+		// Hilos
+		pthread_t hilos[tamaño];
+		pthread_attr_t attr;
+
+		// Procesos que resuelven cofactores
+		pHilo resultadoMenores[tamaño];
+		for (int i = 0; i < tamaño; i++) {
+			resultadoMenores[i].tipo = tamaño - 1;
+			pthread_attr_init(&attr);
+			pthread_create(&hilos[i], &attr, resolucion, &resultadoMenores[i]);
+		}
+
+		// Esperar hilos
+		for (int i = 0; i < tamaño; i++) {
+			pthread_join(hilos[i], NULL);
+		}
+
+		// Calcular resultado final (suma de cofactores)
+		long resultadoFinal = 0;
+		for (int i = 0; i < tamaño; i++) {
+			resultadoFinal += resultadoMenores[i].resultado;
+		}
+		p->resultado = resultadoFinal;
 	}
 	pthread_exit(0);
 }
@@ -111,7 +145,7 @@ void enviarMensaje(int idCola, int tipoMensaje, mensaje msj) {
 		perror("Error al enviar mensaje");
 		exit(EXIT_FAILURE);
 	}
-	printf("mensaje enviado \n");
+	//printf("mensaje enviado.\n");
 }
 
 void recibirMensaje(int idCola, int tipoMensaje, mensaje *msj) {
