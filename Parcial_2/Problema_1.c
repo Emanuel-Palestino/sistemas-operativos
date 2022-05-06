@@ -6,11 +6,9 @@
 #include <sys/types.h>
 #include <sys/msg.h>
 #include <errno.h>
-#include <semaphore.h>
 
 int **matriz = NULL;
 int cola;
-sem_t semaforo;
 
 typedef struct contenido {
 	int **mat;
@@ -30,18 +28,17 @@ typedef struct propiedadesHilo {
 // Función de lee una matriz desde un archivo
 int **leerMatriz(FILE *, char *, int *);
 void *resolucion(void *);
-void enviarMensaje(int, int, mensaje);
+void enviarMensaje(int, mensaje);
 void recibirMensaje(int, int, mensaje *);
 int **obtenerMenor(int **, int, int, int);
 int resolver2x2(int **);
-void imprimirMatriz(int **, int);
 int potencia(int, int);
 
 int main(int argC, char *argV[]) {
 	// Leer matriz del archivo
 	FILE *archivoMatriz = NULL;
 	int tamaño = 0;
-	matriz = leerMatriz(archivoMatriz, "matriz6.txt", &tamaño);
+	matriz = leerMatriz(archivoMatriz, "matriz4.txt", &tamaño);
 
 	// Cola mensajes
 	int llave;
@@ -51,16 +48,13 @@ int main(int argC, char *argV[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	// Inicialización del semaforo
-	sem_init(&semaforo, 0, 1);
-
 	// Mensajes iniciales (Cofactor a calcular)
 	for (int i = 0; i < tamaño; i++) {
 		mensaje msj;
 		msj.tipo = tamaño - 1;
 		msj.contenido.factor = potencia(-1, i) * matriz[0][i];
 		msj.contenido.mat = obtenerMenor(matriz, tamaño, 0, i);
-		enviarMensaje(cola, msj.tipo, msj);
+		enviarMensaje(cola, msj);
 	}
 
 	// Hilos
@@ -68,26 +62,23 @@ int main(int argC, char *argV[]) {
 	pthread_attr_t attr;
 
 	// Procesos que resuelven cofactores
-	pHilo resultadoMenores[tamaño];
+	pHilo resultadoCofactores[tamaño];
 	for (int i = 0; i < tamaño; i++) {
-		resultadoMenores[i].tipo = tamaño - 1;
+		resultadoCofactores[i].tipo = tamaño - 1;
 		pthread_attr_init(&attr);
-		pthread_create(&hilos[i], &attr, resolucion, &resultadoMenores[i]);
+		pthread_create(&hilos[i], &attr, resolucion, &resultadoCofactores[i]);
 	}
 
 	// Esperar hilos
-	for (int i = 0; i < tamaño; i++) {
+	for (int i = 0; i < tamaño; i++)
 		pthread_join(hilos[i], NULL);
-	}
 
 	// Calcular resultado final (suma de cofactores)
 	long resultadoFinal = 0;
-	for (int i = 0; i < tamaño; i++) {
-		resultadoFinal += resultadoMenores[i].resultado;
-		//printf("res cofactor = %d\n", resultadoMenores[i].resultado);
-	}
+	for (int i = 0; i < tamaño; i++)
+		resultadoFinal += resultadoCofactores[i].resultado;
 
-	printf("Resultado Final = %ld\n", resultadoFinal);
+	printf("Resultado de la Determinante = %ld\n", resultadoFinal);
 
 	exit(EXIT_SUCCESS);
 }
@@ -100,13 +91,13 @@ void *resolucion(void *ph) {
 		p->resultado = m.contenido.factor * resolver2x2(m.contenido.mat);
 	} else {
 		int tamaño = m.tipo;
-		// Mensajes iniciales (Cofactor a calcular)
+		// Enviar a cola Cofactor a calcular
 		for (int i = 0; i < tamaño; i++) {
 			mensaje msj;
 			msj.tipo = tamaño - 1;
 			msj.contenido.factor = m.contenido.factor * potencia(-1, i) * m.contenido.mat[0][i];
 			msj.contenido.mat = obtenerMenor(m.contenido.mat, tamaño, 0, i);
-			enviarMensaje(cola, msj.tipo, msj);
+			enviarMensaje(cola, msj);
 		}
 
 		// Hilos
@@ -114,38 +105,32 @@ void *resolucion(void *ph) {
 		pthread_attr_t attr;
 
 		// Procesos que resuelven cofactores
-		pHilo resultadoMenores[tamaño];
+		pHilo resultadoCofactores[tamaño];
 		for (int i = 0; i < tamaño; i++) {
-			resultadoMenores[i].tipo = tamaño - 1;
+			resultadoCofactores[i].tipo = tamaño - 1;
 			pthread_attr_init(&attr);
-			pthread_create(&hilos[i], &attr, resolucion, &resultadoMenores[i]);
+			pthread_create(&hilos[i], &attr, resolucion, &resultadoCofactores[i]);
 		}
 
 		// Esperar hilos
-		for (int i = 0; i < tamaño; i++) {
+		for (int i = 0; i < tamaño; i++)
 			pthread_join(hilos[i], NULL);
-		}
 
 		// Calcular resultado final (suma de cofactores)
-		long resultadoFinal = 0;
-		for (int i = 0; i < tamaño; i++) {
-			resultadoFinal += resultadoMenores[i].resultado;
-		}
-		p->resultado = resultadoFinal;
+		long resultado = 0;
+		for (int i = 0; i < tamaño; i++)
+			resultado += resultadoCofactores[i].resultado;
+		p->resultado = resultado;
 	}
 	pthread_exit(0);
 }
 
-void enviarMensaje(int idCola, int tipoMensaje, mensaje msj) {
-	// Crear mensaje
-	msj.tipo = tipoMensaje;
-
+void enviarMensaje(int idCola, mensaje msj) {
 	// Enviar mensaje
 	if (msgsnd(idCola, (void *) &msj, sizeof(msj.contenido), IPC_NOWAIT) == -1) {
 		perror("Error al enviar mensaje");
 		exit(EXIT_FAILURE);
 	}
-	//printf("mensaje enviado.\n");
 }
 
 void recibirMensaje(int idCola, int tipoMensaje, mensaje *msj) {
@@ -163,9 +148,7 @@ void recibirMensaje(int idCola, int tipoMensaje, mensaje *msj) {
 }
 
 int resolver2x2(int **mat) {
-	int resultado = 0;
-	resultado = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
-	return resultado;
+	return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
 }
 
 int **obtenerMenor(int **matrizCompleta, int tam, int i, int j) {
@@ -191,7 +174,7 @@ int **obtenerMenor(int **matrizCompleta, int tam, int i, int j) {
 }
 
 int **leerMatriz(FILE *archivo, char *nombre, int *tamaño) {
-	// Leer archivo
+	// Abrir archivo
 	if ((archivo = fopen(nombre, "r")) == NULL) {
 		perror("Error al abrir el archivo");
 		exit(EXIT_FAILURE);
@@ -199,7 +182,6 @@ int **leerMatriz(FILE *archivo, char *nombre, int *tamaño) {
 
 	// Obtener matriz
 	fscanf(archivo, "%d", tamaño);
-
 	int **matriz = (int **) malloc(*tamaño * sizeof(int *));
 
 	for (int i = 0; i < *tamaño; i++) {
@@ -209,15 +191,6 @@ int **leerMatriz(FILE *archivo, char *nombre, int *tamaño) {
 	}
 
 	return matriz;
-}
-
-void imprimirMatriz(int **mat, int tam) {
-	for (int i = 0; i < tam; i++) {
-		for (int j = 0; j < tam; j++) {
-			printf("%d ", mat[i][j]);
-		}
-		printf("\n");
-	}
 }
 
 int potencia(int base, int potencia) {
