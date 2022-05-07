@@ -38,7 +38,7 @@ int main(int argC, char *argV[]) {
 	// Leer matriz del archivo
 	FILE *archivoMatriz = NULL;
 	int tamaño = 0;
-	matriz = leerMatriz(archivoMatriz, "matriz4.txt", &tamaño);
+	matriz = leerMatriz(archivoMatriz, "matriz.txt", &tamaño);
 
 	// Cola mensajes
 	int llave;
@@ -122,6 +122,7 @@ void *resolucion(void *ph) {
 			resultado += resultadoCofactores[i].resultado;
 		p->resultado = resultado;
 	}
+	printf("%d\n", p->resultado);
 	pthread_exit(0);
 }
 
