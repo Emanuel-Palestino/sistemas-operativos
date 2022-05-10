@@ -12,7 +12,7 @@ int cola;
 
 typedef struct contenido {
 	int **mat;
-	int factor;
+	long factor;
 } cont;
 
 typedef struct mensaje {
@@ -22,7 +22,7 @@ typedef struct mensaje {
 
 typedef struct propiedadesHilo {
 	int tipo;
-	int resultado;
+	long resultado;
 } pHilo;
 
 // Función de lee una matriz desde un archivo
@@ -38,13 +38,20 @@ int main(int argC, char *argV[]) {
 	// Leer matriz del archivo
 	FILE *archivoMatriz = NULL;
 	int tamaño = 0;
-	matriz = leerMatriz(archivoMatriz, "matriz.txt", &tamaño);
+	matriz = leerMatriz(archivoMatriz, "matriz8_2.txt", &tamaño);
 
 	// Cola mensajes
 	int llave;
 	llave = ftok(argV[0], 'e');
 	if ((cola = msgget(llave, IPC_CREAT | 0666)) == -1) {
 		perror("Error al crear la cola");
+		exit(EXIT_FAILURE);
+	}
+	// Aumentar limite de la cola
+	struct msqid_ds buf;
+	buf.msg_qbytes = 2097152;	// funciona hasta para 8x8
+	if (msgctl(cola, IPC_SET, &buf) == -1) {
+		perror("Error en el control");
 		exit(EXIT_FAILURE);
 	}
 
@@ -78,7 +85,7 @@ int main(int argC, char *argV[]) {
 	for (int i = 0; i < tamaño; i++)
 		resultadoFinal += resultadoCofactores[i].resultado;
 
-	printf("Resultado de la Determinante = %ld\n", resultadoFinal);
+	printf("Resultado de la Determinante de %dx%d = %ld\n",tamaño, tamaño, resultadoFinal);
 
 	exit(EXIT_SUCCESS);
 }
@@ -122,7 +129,7 @@ void *resolucion(void *ph) {
 			resultado += resultadoCofactores[i].resultado;
 		p->resultado = resultado;
 	}
-	printf("%d\n", p->resultado);
+	//printf("%d\n", p->resultado);
 	pthread_exit(0);
 }
 
