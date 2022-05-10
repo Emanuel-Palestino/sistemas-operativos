@@ -16,8 +16,6 @@ void abrirSemaforo(int, struct sembuf *, int);
 void abrirArchivo(FILE *, char *, char *);
 void abrirArchivoUltimaLinea(FILE *, char *, char *);
 
-const char *data = "jeje";
-
 int main(int argC, char *argV[]) {
 	int idSemaforo;
 	struct sembuf operacion;
@@ -30,10 +28,6 @@ int main(int argC, char *argV[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	// Configuración del semaforo
-	semctl(idSemaforo, SEMAFORO_CLIENTE, SETVAL, 1);
-	semctl(idSemaforo, SEMAFORO_BANCO, SETVAL, 0);
-
 	// Creación de memoria compartida
 	int idMemoria;
 	if ((idMemoria = shmget(IPC_PRIVATE, 4, IPC_CREAT | 0600)) == -1) {
@@ -41,7 +35,12 @@ int main(int argC, char *argV[]) {
 		exit(EXIT_FAILURE);
 	}
 	char *turno = (char *) shmat(idMemoria, 0, 0);
-	memmove(turno, data, 4);
+	strcpy(turno, "jeje");
+	printf("Memoria 1: %s\n", turno);
+
+	// Configuración del semaforo
+	semctl(idSemaforo, SEMAFORO_CLIENTE, SETVAL, 1);
+	semctl(idSemaforo, SEMAFORO_BANCO, SETVAL, 0);
 
 	// Obtener Capital
 	int capital;
@@ -90,8 +89,7 @@ int main(int argC, char *argV[]) {
 			}
 
 			// Borrar semaforo
-			semctl(idSemaforo, 0, IPC_RMID, 0);
-			shmdt(turno);
+			//semctl(idSemaforo, 0, IPC_RMID, 0);
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -161,6 +159,7 @@ int main(int argC, char *argV[]) {
 
 	// Borrar semaforo
 	semctl(idSemaforo, 0, IPC_RMID, 0);
+
 	shmdt(turno);
 	shmctl(idMemoria, IPC_RMID, 0);
 	exit(EXIT_SUCCESS);
