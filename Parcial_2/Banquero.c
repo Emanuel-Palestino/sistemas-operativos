@@ -9,19 +9,20 @@
 #define SEMAFORO_CLIENTE 0
 #define SEMAFORO_BANCO 1
 #define NUM_MAX_CLIENTES 5
+#define CANTIDAD_ITERACIONES 30
 
 typedef struct mem {
 	int turno;
 	int numeroTransaccion;
 	int prestamoClientes[NUM_MAX_CLIENTES];
 	int ultimaPeticion;
+	int efectivo;
 } memoria;
 
-int esHijo(pid_t, pid_t *, int);
 void cerrarSemaforo(int, struct sembuf *, int);
 void abrirSemaforo(int, struct sembuf *, int);
 FILE *abrirArchivo(char *, char *);
-void abrirArchivoUltimaLinea(FILE *, char *, char *);
+int obtenerClienteAleatorio(int);
 
 int main(int argC, char *argV[]) {
 	// Creación de la llave
@@ -47,10 +48,6 @@ int main(int argC, char *argV[]) {
 	}
 	memoria *global = (memoria *) shmat(idMemoria, 0, 0);
 
-	// Saber qué cliente va a iniciar
-	global->numeroTransaccion = 0;
-	global->turno = 0;
-
 	// Obtener Información de los clientes
 	FILE *archivo;
 
@@ -58,6 +55,7 @@ int main(int argC, char *argV[]) {
 	int capital;
 	archivo = abrirArchivo("banco.txt", "r");
 	fscanf(archivo, "%d", &capital);
+	global->efectivo = capital;
 
 	// Obtener Clientes
 	int numeroClientes;
@@ -71,6 +69,11 @@ int main(int argC, char *argV[]) {
 
 	fclose(archivo);
 
+	// Saber qué cliente va a iniciar
+	global->numeroTransaccion = 0;
+	global->turno = obtenerClienteAleatorio(numeroClientes);
+	printf("Inicia: %d\n", global->turno);
+
 	// Creación de clientes
 	pid_t clientes[numeroClientes];
 	for (int i = 0; i < numeroClientes; i++) {
@@ -81,7 +84,7 @@ int main(int argC, char *argV[]) {
 
 		if (clientes[i] == 0) {
 			// Acciones del cliente
-			while(global->numeroTransaccion < 3) {
+			while(global->numeroTransaccion < CANTIDAD_ITERACIONES) {
 				if (i == global->turno) {
 					cerrarSemaforo(idSemaforo, &operacion, SEMAFORO_CLIENTE);
 					printf("Cliente %d haciendo petición...\n", i);
@@ -126,12 +129,13 @@ int main(int argC, char *argV[]) {
 		}
 	}
 
-	// Acciones del banco
-	while(global->numeroTransaccion < 3) {
+	// Acciones del Banco
+	while(global->numeroTransaccion < CANTIDAD_ITERACIONES) {
 		cerrarSemaforo(idSemaforo, &operacion, SEMAFORO_BANCO);
 	
 		// Obtener el siguiente cliente a pedir
-		global->turno = global->numeroTransaccion;
+		global->turno = obtenerClienteAleatorio(numeroClientes);
+		printf("Sigue: %d\n", global->turno);
 
 		printf("Banco evaluando petición #%d de %d:\n", global->numeroTransaccion, global->ultimaPeticion);
 
@@ -146,7 +150,7 @@ int main(int argC, char *argV[]) {
 			c = getc(archivo);
 		}
 	
-		// acciones - leer del archivo y comprobar estado seguro
+		// Quitar número de transacción
 		int nada;
 		fscanf(archivo, "%d - ", &nada);
 	
@@ -164,12 +168,21 @@ int main(int argC, char *argV[]) {
 		for (int i = 0; i < numeroClientes; i++)
 			fscanf(archivo, "%d", &demandaClientes[i]);
 	
-		// comprobar estado
-		int estado = 1;
+		// Comprobar Estado
+		int estado = 0;
+		if (necesidadClientes[global->ultimaPeticion] <= capital) {
+			if (global->prestamoClientes[global->ultimaPeticion] >= 0 && global->prestamoClientes[global->ultimaPeticion] <= necesidadClientes[global->ultimaPeticion]) {
+				if (0 < global->efectivo && global->efectivo <= capital) {
+					estado = 1;
+				}
+			}
+		}
 		if (estado) {
 			fprintf(archivo, "- Seguro\n");
+			global->efectivo--;
 		} else {
 			fprintf(archivo, "- No Seguro\n");
+			global->prestamoClientes[global->ultimaPeticion]--;
 		}
 
 		fclose(archivo);
@@ -177,7 +190,6 @@ int main(int argC, char *argV[]) {
 		// abrir semaforo cliente
 		printf("... Evaluación terminada.\n\n");
 		abrirSemaforo(idSemaforo, &operacion, SEMAFORO_CLIENTE);
-
 	}
 
 	// Borrar semaforo
@@ -211,4 +223,8 @@ FILE *abrirArchivo(char *nombre, char *modo) {
 		exit(EXIT_FAILURE);
 	}
 	return temporal;
+}
+
+int obtenerClienteAleatorio(int numClientes) {
+	return rand() % numClientes;
 }

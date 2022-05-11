@@ -1,6 +1,33 @@
 12
 3
 4 6 8
-1 - 1 0 0 - 4 6 8 - 3 6 8 - Seguro
-2 - 1 1 0 - 4 6 8 - 3 5 8 - Seguro
-3 - 1 1 1 - 4 6 8 - 3 5 7 - Seguro
+1 - 0 1 0 - 4 6 8 - 4 5 8 - Seguro
+2 - 0 2 0 - 4 6 8 - 4 4 8 - Seguro
+3 - 1 2 0 - 4 6 8 - 3 4 8 - Seguro
+4 - 1 3 0 - 4 6 8 - 3 3 8 - Seguro
+5 - 1 3 1 - 4 6 8 - 3 3 7 - Seguro
+6 - 1 4 1 - 4 6 8 - 3 2 7 - Seguro
+7 - 1 5 1 - 4 6 8 - 3 1 7 - Seguro
+8 - 2 5 1 - 4 6 8 - 2 1 7 - Seguro
+9 - 3 5 1 - 4 6 8 - 1 1 7 - Seguro
+10 - 3 6 1 - 4 6 8 - 1 0 7 - Seguro
+11 - 3 6 2 - 4 6 8 - 1 0 6 - Seguro
+12 - 3 7 2 - 4 6 8 - 1 -1 6 - No Seguro
+13 - 3 6 3 - 4 6 8 - 1 0 5 - Seguro
+14 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
+15 - 3 6 4 - 4 6 8 - 1 0 4 - No Seguro
+16 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
+17 - 4 6 3 - 4 6 8 - 0 0 5 - No Seguro
+18 - 4 6 3 - 4 6 8 - 0 0 5 - No Seguro
+19 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
+20 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
+21 - 3 6 4 - 4 6 8 - 1 0 4 - No Seguro
+22 - 3 6 4 - 4 6 8 - 1 0 4 - No Seguro
+23 - 4 6 3 - 4 6 8 - 0 0 5 - No Seguro
+24 - 4 6 3 - 4 6 8 - 0 0 5 - No Seguro
+25 - 3 6 4 - 4 6 8 - 1 0 4 - No Seguro
+26 - 3 6 4 - 4 6 8 - 1 0 4 - No Seguro
+27 - 3 6 4 - 4 6 8 - 1 0 4 - No Seguro
+28 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
+29 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
+30 - 3 7 3 - 4 6 8 - 1 -1 5 - No Seguro
