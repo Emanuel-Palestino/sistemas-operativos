@@ -8,29 +8,36 @@
 
 #define SEMAFORO_CLIENTE 0
 #define SEMAFORO_BANCO 1
+#define NUM_MAX_CLIENTES 5
 
 typedef struct mem {
 	int turno;
 	int numeroTransaccion;
+	int prestamoClientes[NUM_MAX_CLIENTES];
+	int ultimaPeticion;
 } memoria;
 
 int esHijo(pid_t, pid_t *, int);
 void cerrarSemaforo(int, struct sembuf *, int);
 void abrirSemaforo(int, struct sembuf *, int);
-void abrirArchivo(FILE *, char *, char *);
+FILE *abrirArchivo(char *, char *);
 void abrirArchivoUltimaLinea(FILE *, char *, char *);
 
 int main(int argC, char *argV[]) {
+	// Creación de la llave
+	key_t llave;
+	llave = ftok(argV[0], 'e');
+
+	// Creación y configuración de los semaforos
 	int idSemaforo;
 	struct sembuf operacion;
-	key_t llave;
-
-	// Creación del semaforo
-	llave = ftok(argV[0], 'e');
 	if ((idSemaforo = semget(llave, 2, IPC_CREAT | 0600)) == -1) {
 		perror("Error en semget");
 		exit(EXIT_FAILURE);
 	}
+	semctl(idSemaforo, SEMAFORO_CLIENTE, SETVAL, 1);
+	semctl(idSemaforo, SEMAFORO_BANCO, SETVAL, 0);
+
 
 	// Creación de memoria compartida
 	int idMemoria;
@@ -40,38 +47,31 @@ int main(int argC, char *argV[]) {
 	}
 	memoria *global = (memoria *) shmat(idMemoria, 0, 0);
 
-	// Configuración del semaforo
-	semctl(idSemaforo, SEMAFORO_CLIENTE, SETVAL, 1);
-	semctl(idSemaforo, SEMAFORO_BANCO, SETVAL, 0);
-
 	// Saber qué cliente va a iniciar
-	global->turno = 0;
 	global->numeroTransaccion = 0;
+	global->turno = 0;
 
-	// Obtener Capital
-	int capital;
+	// Obtener Información de los clientes
 	FILE *archivo;
-	if ((archivo = fopen("banco.txt", "r")) == NULL) {
-		perror("Error al abrir el archivo");
-		exit(EXIT_FAILURE);
-	}
 
+	// Leer capital
+	int capital;
+	archivo = abrirArchivo("banco.txt", "r");
 	fscanf(archivo, "%d", &capital);
 
 	// Obtener Clientes
 	int numeroClientes;
 	fscanf(archivo, "%d", &numeroClientes);
+
 	// Leer necesidad de clientes
 	int necesidadClientes[numeroClientes];
+	int demandaClientes[numeroClientes];
 	for (int i = 0; i < numeroClientes; i++)
 		fscanf(archivo, "%d ", &necesidadClientes[i]);
 
 	fclose(archivo);
 
-	int prestamoClientes[numeroClientes];
-	int demandaClientes[numeroClientes];
-
-	// Creación de hijos
+	// Creación de clientes
 	pid_t clientes[numeroClientes];
 	for (int i = 0; i < numeroClientes; i++) {
 		if ((clientes[i] = fork()) == -1) {
@@ -81,88 +81,43 @@ int main(int argC, char *argV[]) {
 
 		if (clientes[i] == 0) {
 			// Acciones del cliente
-
 			while(global->numeroTransaccion < 3) {
 				if (i == global->turno) {
 					cerrarSemaforo(idSemaforo, &operacion, SEMAFORO_CLIENTE);
-					printf("cliente %d:\n", i);
+					printf("Cliente %d haciendo petición...\n", i);
 	
-					fpos_t pos;
-					if ((archivo = fopen("banco.txt", "a+")) == NULL) {
-						perror("Error al abrir el archivo");
-						exit(EXIT_FAILURE);
-					}
-					int num = 2;
-					fseek(archivo, -num, SEEK_END);
-					char c;
-					c = getc(archivo);
-					while(c != '\n') {
-						num++;
-						fseek(archivo, -num, SEEK_END);
-						c = getc(archivo);
-					}
-					fgetpos(archivo, &pos);
-					// Obtener número de transaccción
+					archivo = abrirArchivo("banco.txt", "a");
+
+					// Imprimir número de transaccción
 					global->numeroTransaccion++;
-					int nada;
-					if (global->numeroTransaccion > 1) {
-						fsetpos(archivo, &pos);
-						fscanf(archivo, "%d - ", &nada);
-						fgetpos(archivo, &pos);
-						printf("num tran. anterior: %d\n", nada);
-					}
-					fseek(archivo, 0, SEEK_END);
 					fprintf(archivo, "%d - ", global->numeroTransaccion);
 	
 					// Imprimir prestamo del cliente
 					for (int j = 0; j < numeroClientes; j++) {
-						if (global->numeroTransaccion > 1) {
-							fsetpos(archivo, &pos);
-							fscanf(archivo, "%d ", &prestamoClientes[j]);
-							fgetpos(archivo, &pos);
-							printf("%d ", prestamoClientes[j]);
-						}
-						else
-							prestamoClientes[j] = 0;
+						if (global->numeroTransaccion == 1)
+							global->prestamoClientes[j] = 0;
+
 						if (j == global->turno)
-							prestamoClientes[j]++;
-						fseek(archivo, 0, SEEK_END);
-						fprintf(archivo, "%d ", prestamoClientes[j]);
+							global->prestamoClientes[j]++;
+						fprintf(archivo, "%d ", global->prestamoClientes[j]);
 					}
-					if (global->numeroTransaccion > 1) {
-						fsetpos(archivo, &pos);
-						fscanf(archivo, " - ");
-						fgetpos(archivo, &pos);
-					}
-					fseek(archivo, 0, SEEK_END);
 					fprintf(archivo, "- ");
+
 					// Imprimir necesidades de los clientes
-					for (int j = 0; j < numeroClientes; j++) {
-						if (global->numeroTransaccion > 1) {
-							fsetpos(archivo, &pos);
-							fscanf(archivo, "%d ", &necesidadClientes[j]);
-							fgetpos(archivo, &pos);
-						}
-						fseek(archivo, 0, SEEK_END);
+					for (int j = 0; j < numeroClientes; j++)
 						fprintf(archivo, "%d ", necesidadClientes[j]);
-					}
-					if (global->numeroTransaccion > 1) {
-						fsetpos(archivo, &pos);
-						fscanf(archivo, " - ");
-						fgetpos(archivo, &pos);
-					}
-					fseek(archivo, 0, SEEK_END);
 					fprintf(archivo, "- ");
+
 					// Imprimir demanda del cliente
-					for (int j = 0; j < numeroClientes; j++) {
-						fseek(archivo, 0, SEEK_END);
-						fprintf(archivo, "%d ", (necesidadClientes[j] - prestamoClientes[j]));
-					}
+					for (int j = 0; j < numeroClientes; j++)
+						fprintf(archivo, "%d ", (necesidadClientes[j] - global->prestamoClientes[j]));
 					
 					fclose(archivo);
 
-					printf("\n%d...\n", i);
+					printf("... Petición terminada.\n\n");
+					global->ultimaPeticion = global->turno;
 					global->turno = -1;
+
 					abrirSemaforo(idSemaforo, &operacion, SEMAFORO_BANCO);
 				}
 			}
@@ -172,24 +127,19 @@ int main(int argC, char *argV[]) {
 	}
 
 	// Acciones del banco
-
 	while(global->numeroTransaccion < 3) {
-		// cerramos semáforo del banco
 		cerrarSemaforo(idSemaforo, &operacion, SEMAFORO_BANCO);
 	
 		// Obtener el siguiente cliente a pedir
 		global->turno = global->numeroTransaccion;
 
-		printf("banco %d:\n", global->numeroTransaccion);
+		printf("Banco evaluando petición #%d de %d:\n", global->numeroTransaccion, global->ultimaPeticion);
+
 		// Leer archivo en última línea
-		if ((archivo = fopen("banco.txt", "a+")) == NULL) {
-			perror("Error al abrir el archivo");
-			exit(EXIT_FAILURE);
-		}
+		archivo = abrirArchivo("banco.txt", "a+");
 		int num = 1;
 		fseek(archivo, -num, SEEK_END);
-		char c;
-		c = getc(archivo);
+		char c = getc(archivo);
 		while(c != '\n') {
 			num++;
 			fseek(archivo, -num, SEEK_END);
@@ -201,9 +151,8 @@ int main(int argC, char *argV[]) {
 		fscanf(archivo, "%d - ", &nada);
 	
 		// Obtener Prestamo
-		for (int i = 0; i < numeroClientes; i++) {
-			fscanf(archivo, "%d ", &prestamoClientes[i]);
-		}
+		for (int i = 0; i < numeroClientes; i++)
+			fscanf(archivo, "%d ", &global->prestamoClientes[i]);
 		fscanf(archivo, " - ");
 	
 		// Obtener Necesidad
@@ -212,13 +161,11 @@ int main(int argC, char *argV[]) {
 		fscanf(archivo, " - ");
 	
 		// Obtener Demanda
-		for (int i = 0; i < numeroClientes; i++) {
+		for (int i = 0; i < numeroClientes; i++)
 			fscanf(archivo, "%d", &demandaClientes[i]);
-		}
 	
 		// comprobar estado
 		int estado = 1;
-	
 		if (estado) {
 			fprintf(archivo, "- Seguro\n");
 		} else {
@@ -228,7 +175,7 @@ int main(int argC, char *argV[]) {
 		fclose(archivo);
 
 		// abrir semaforo cliente
-		printf("banco %d...\n", global->numeroTransaccion);
+		printf("... Evaluación terminada.\n\n");
 		abrirSemaforo(idSemaforo, &operacion, SEMAFORO_CLIENTE);
 
 	}
@@ -257,25 +204,11 @@ void abrirSemaforo(int id, struct sembuf *operacion, int semaforo) {
 	semop(id, operacion, 1);
 }
 
-void abrirArchivo(FILE *arc, char *nombre, char *modo) {
-	if ((arc = fopen("banco.txt", "r")) == NULL) {
+FILE *abrirArchivo(char *nombre, char *modo) {
+	FILE *temporal;
+	if ((temporal = fopen(nombre, modo)) == NULL) {
 		perror("Error al abrir el archivo");
 		exit(EXIT_FAILURE);
 	}
-}
-
-void abrirArchivoUltimaLinea(FILE *archivo, char *nombre, char *modo) {
-	if ((archivo = fopen(nombre, modo)) == NULL) {
-		perror("Error al abrir el archivo");
-		exit(EXIT_FAILURE);
-	}
-	int num = 1;
-	fseek(archivo, -num, SEEK_END);
-	char c;
-	c = getc(archivo);
-	while(c != '\n') {
-		num++;
-		fseek(archivo, -num, SEEK_END);
-		c = getc(archivo);
-	}
+	return temporal;
 }
