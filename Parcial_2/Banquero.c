@@ -91,35 +91,48 @@ int main(int argC, char *argV[]) {
 					printf("Cliente %d haciendo petición...\n", i);
 	
 					archivo = abrirArchivo("banco.txt", "a");
+					char impresion[20];
+
+					// Imprimir encabezado
+					if (global->numeroTransaccion == 0) {
+						fprintf(archivo, "%3s | %14s | %14s | %14s | %8s | %7s | %9s |\n", "#", "Prestamo", "Necesidad", "Demanda", "Efectivo", "Capital", "Estado");
+					}
+
 
 					// Imprimir número de transaccción
 					global->numeroTransaccion++;
-					fprintf(archivo, "%d - ", global->numeroTransaccion);
+					fprintf(archivo, "%3d | ", global->numeroTransaccion);
 	
 					// Imprimir prestamo del cliente
+					for (int j = 0; j < (5 - numeroClientes); j++)
+						fprintf(archivo, "   ");
 					for (int j = 0; j < numeroClientes; j++) {
 						if (global->numeroTransaccion == 1)
 							global->prestamoClientes[j] = 0;
 
 						if (j == global->turno)
 							global->prestamoClientes[j]++;
-						fprintf(archivo, "%d ", global->prestamoClientes[j]);
+						fprintf(archivo, "%2d ", global->prestamoClientes[j]);
 					}
-					fprintf(archivo, "- ");
+					fprintf(archivo, "| ");
 
 					// Imprimir necesidades de los clientes
+					for (int j = 0; j < (5 - numeroClientes); j++)
+						fprintf(archivo, "   ");
 					for (int j = 0; j < numeroClientes; j++)
-						fprintf(archivo, "%d ", necesidadClientes[j]);
-					fprintf(archivo, "- ");
+						fprintf(archivo, "%2d ", necesidadClientes[j]);
+					fprintf(archivo, "| ");
 
 					// Imprimir demanda del cliente
+					for (int j = 0; j < (5 - numeroClientes); j++)
+						fprintf(archivo, "   ");
 					for (int j = 0; j < numeroClientes; j++)
-						fprintf(archivo, "%d ", (necesidadClientes[j] - global->prestamoClientes[j]));
+						fprintf(archivo, "%2d ", (necesidadClientes[j] - global->prestamoClientes[j]));
 
 					// Imprimir Efectivo y Capital
 					global->efectivo--;
-					fprintf(archivo, "- %d ", global->efectivo);
-					fprintf(archivo, "- %d ", capital);
+					fprintf(archivo, "| %8d ", global->efectivo);
+					fprintf(archivo, "| %7d ", capital);
 					
 					fclose(archivo);
 
@@ -188,9 +201,9 @@ int main(int argC, char *argV[]) {
 			}
 		}
 		if (estado) {
-			fprintf(archivo, "- Seguro\n");
+			fprintf(archivo, "| %9s |\n", "Seguro");
 		} else {
-			fprintf(archivo, "- No Seguro\n");
+			fprintf(archivo, "| %9s |\n", "No Seguro");
 			// Revertir solicitud
 			global->efectivo++;
 			global->prestamoClientes[global->ultimaPeticion]--;
