@@ -9,7 +9,7 @@
 #define SEMAFORO_CLIENTE 0
 #define SEMAFORO_BANCO 1
 #define NUM_MAX_CLIENTES 5
-#define CANTIDAD_ITERACIONES 30
+#define CANTIDAD_ITERACIONES 20
 
 typedef struct mem {
 	int turno;
@@ -23,6 +23,7 @@ void cerrarSemaforo(int, struct sembuf *, int);
 void abrirSemaforo(int, struct sembuf *, int);
 FILE *abrirArchivo(char *, char *);
 int obtenerClienteAleatorio(int);
+int comprobarDemandaEfectivo(int, int *, int);
 
 int main(int argC, char *argV[]) {
 	// Creación de la llave
@@ -114,6 +115,11 @@ int main(int argC, char *argV[]) {
 					// Imprimir demanda del cliente
 					for (int j = 0; j < numeroClientes; j++)
 						fprintf(archivo, "%d ", (necesidadClientes[j] - global->prestamoClientes[j]));
+
+					// Imprimir Efectivo y Capital
+					global->efectivo--;
+					fprintf(archivo, "- %d ", global->efectivo);
+					fprintf(archivo, "- %d ", capital);
 					
 					fclose(archivo);
 
@@ -167,21 +173,26 @@ int main(int argC, char *argV[]) {
 		// Obtener Demanda
 		for (int i = 0; i < numeroClientes; i++)
 			fscanf(archivo, "%d", &demandaClientes[i]);
-	
+
 		// Comprobar Estado
 		int estado = 0;
+		// comprobaciones básicas
 		if (necesidadClientes[global->ultimaPeticion] <= capital) {
 			if (global->prestamoClientes[global->ultimaPeticion] >= 0 && global->prestamoClientes[global->ultimaPeticion] <= necesidadClientes[global->ultimaPeticion]) {
-				if (0 < global->efectivo && global->efectivo <= capital) {
-					estado = 1;
+				if (0 <= global->efectivo && global->efectivo <= capital) {
+					// comprobación a futuro
+					if (comprobarDemandaEfectivo(numeroClientes, demandaClientes, global->efectivo)) {
+						estado = 1;
+					}
 				}
 			}
 		}
 		if (estado) {
 			fprintf(archivo, "- Seguro\n");
-			global->efectivo--;
 		} else {
 			fprintf(archivo, "- No Seguro\n");
+			// Revertir solicitud
+			global->efectivo++;
 			global->prestamoClientes[global->ultimaPeticion]--;
 		}
 
@@ -227,4 +238,13 @@ FILE *abrirArchivo(char *nombre, char *modo) {
 
 int obtenerClienteAleatorio(int numClientes) {
 	return rand() % numClientes;
+}
+
+int comprobarDemandaEfectivo(int tamaño, int *demandas, int efectivo) {
+	int resultado = 0;
+	for (int i = 0; i < tamaño; i++) {
+		if (demandas[i] <= efectivo)
+			resultado = 1;
+	}
+	return resultado;
 }
