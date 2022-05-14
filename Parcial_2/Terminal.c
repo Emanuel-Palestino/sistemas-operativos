@@ -4,6 +4,7 @@
 #include <sys/utsname.h>
 #include <utmp.h>
 #include <time.h>
+#include <signal.h>
 
 #define TIEMPO 20
 #define INTERVALO 2
@@ -19,7 +20,7 @@ int main() {
 
 	// Obtener cantidad de usuarios
 	setutent();
-	while(usuario = getutent()) {
+	while((usuario = getutent())) {
 		if (usuario->ut_type == USER_PROCESS && usuario->ut_line[0] == 't' && usuario->ut_line[0] == 't')
 			usuarios++;
 	}
@@ -28,7 +29,7 @@ int main() {
 	sesion login[usuarios];
 	int i = 0;
 	setutent();
-	while(usuario = getutent()) {
+	while((usuario = getutent())) {
 		if (usuario->ut_type == USER_PROCESS && usuario->ut_line[0] == 't' && usuario->ut_line[0] == 't') {
 			login[i].pid = usuario->ut_pid;
 			sprintf(login[i].tty, "%s", usuario->ut_line);
@@ -55,13 +56,21 @@ int main() {
 				perror("Error al abrir archivo");
 				exit(EXIT_FAILURE);
 			}
+
 			fprintf(tty, "[%02d:%02d:%02d] Tu sesión terminará en %d segundos...\n", hora->tm_hour, hora->tm_min, hora->tm_sec, tiempo);
+
 			fclose(tty);
 		}
 
 		tiempo -= INTERVALO;
 		sleep(INTERVALO);
 	}
+
+	// Cerrar sesión para todos los usuarios
+	for (int i = 0; i < usuarios; i++)
+		kill(login[i].pid, 9);
+
+	printf("Todas las sesiones cerradas.\n");
 
 	exit(EXIT_SUCCESS);
 }

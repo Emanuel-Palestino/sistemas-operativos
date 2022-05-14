@@ -9,7 +9,7 @@
 #define SEMAFORO_CLIENTE 0
 #define SEMAFORO_BANCO 1
 #define NUM_MAX_CLIENTES 5
-#define CANTIDAD_ITERACIONES 20
+#define CANTIDAD_ITERACIONES 40
 
 typedef struct mem {
 	int turno;
@@ -91,7 +91,6 @@ int main(int argC, char *argV[]) {
 					printf("Cliente %d haciendo petición...\n", i);
 	
 					archivo = abrirArchivo("banco.txt", "a");
-					char impresion[20];
 
 					// Imprimir encabezado
 					if (global->numeroTransaccion == 0) {
