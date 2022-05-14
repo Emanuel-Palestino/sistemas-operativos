@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/utsname.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <utmp.h>
+#include <time.h>
+
+#define TIEMPO 20
+#define INTERVALO 2
 
 typedef struct sesion {
 	int pid;
@@ -35,14 +39,29 @@ int main() {
 	// Enviar mensajes usuarios
 	FILE *tty;
 	char ruta[100];
-	sprintf(ruta, "/proc/%d/fd/0", login[0].pid);
-	if ((tty = fopen(ruta, "w")) == NULL) {
-		perror("Error al abrir archivo");
-		return 1;
-	}
-	fprintf(tty, "Tu sesión terminará pronto jeje");
-	
-	fclose(tty);
 
-	return 0;
+	int tiempo = TIEMPO;
+	while(tiempo > 0) {
+		// Obtener la hora del sistema
+		time_t t;
+		time(&t);
+		struct tm *hora;
+		hora = localtime(&t);
+		
+		// Para cada usuario
+		for (int i = 0; i < usuarios; i++) {
+			sprintf(ruta, "/proc/%d/fd/0", login[i].pid);
+			if ((tty = fopen(ruta, "w")) == NULL) {
+				perror("Error al abrir archivo");
+				exit(EXIT_FAILURE);
+			}
+			fprintf(tty, "[%02d:%02d:%02d] Tu sesión terminará en %d segundos...\n", hora->tm_hour, hora->tm_min, hora->tm_sec, tiempo);
+			fclose(tty);
+		}
+
+		tiempo -= INTERVALO;
+		sleep(INTERVALO);
+	}
+
+	exit(EXIT_SUCCESS);
 }
