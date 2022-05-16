@@ -1,4 +1,20 @@
-// Banquero
+/*
+ * Banquero.c
+ *
+ * Forma de compilar: gcc Banquero.c -o Banquero
+ * 
+ * Programa que simula el algoritmo del Banquero de Dijkstra.
+ * Para su funcionamiento se debe crear un archivo llamado Banto.txt, el cual
+ * debe seguir la siguiente estructura:
+ * Primera línea: La capital que tendrá el banco.
+ * Segunda línea: El número de clientes que se tendrá.
+ * Tercera línea: La necesidad de cada cliente dividia por un espacio.
+ * El programa escribirá los estados en ese archivo, indicando si se encuentra en
+ * un estado seguro o no seguro.
+ *
+ * CCBY: Palestino Hernández Emanuel
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,10 +35,15 @@ typedef struct mem {
 	int efectivo;
 } memoria;
 
+// Cierra el semáforo especificado
 void cerrarSemaforo(int, struct sembuf *, int);
+// Abre el semáforo especificado
 void abrirSemaforo(int, struct sembuf *, int);
+// Abre un archivo en el modo especificado
 FILE *abrirArchivo(char *, char *);
+// Obtiene un número de cliente de manera aleatoria
 int obtenerClienteAleatorio(int);
+// Comprueba que exista al menos una demanda de un cliente que sea menor o igual al efectivo
 int comprobarDemandaEfectivo(int, int *, int);
 
 int main(int argC, char *argV[]) {

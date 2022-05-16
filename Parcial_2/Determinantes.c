@@ -1,4 +1,19 @@
-// Problema 1
+/*
+ * Determinantes.c
+ *
+ * Forma de compilar: gcc Determinantes.c -o Determinantes
+ * 
+ * Programa que calcula la determinante de una matriz desde tamaño 2 hasta 8.
+ * Para cargar la matriz se debe crear un archivo llamado matriz.txt el cual
+ * debe tener la siguiente estructura:
+ * Primer línea: el tamaño de la matriz
+ * Siguientes líneas: la matriz, cada fila debe estar en una línea diferente y los valores
+ * deben estar separados por un espacio.
+ *
+ *
+ * CCBY: Palestino Hernández Emanuel
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,13 +40,19 @@ typedef struct propiedadesHilo {
 	long resultado;
 } pHilo;
 
-// Función de lee una matriz desde un archivo
+// Lee una matriz desde un archivo
 int **leerMatriz(FILE *, char *, int *);
+// Función que reciben todos los hilos creados para resolver las determinantes.
 void *resolucion(void *);
+// Envia un mensaje a la cola de mensajes
 void enviarMensaje(int, mensaje);
+// Recibe un mensaje del tipo especificado de la cola de mensajes
 void recibirMensaje(int, int, mensaje *);
+// Obtiene la matriz menor de la matriz dada
 int **obtenerMenor(int **, int, int, int);
+// Resuelve la determinante de una matriz de tamaño 2
 int resolver2x2(int **);
+// Obtiene la potencia de un número
 int potencia(int, int);
 
 int main(int argC, char *argV[]) {

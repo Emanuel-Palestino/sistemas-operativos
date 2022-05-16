@@ -1,3 +1,16 @@
+/*
+ * Terminal.c
+ *
+ * Forma de compilar: gcc Terminal.c -o Terminal
+ * 
+ * Programa que manda mensajes a todos los usuarios conectados en las diferentes tty's
+ * indicando que su sesión se cerrará en x tiempo. Una vez terminado el tiempo,
+ * la sesión de los usuarios se terminará.
+ *
+ * CCBY: Palestino Hernández Emanuel
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
