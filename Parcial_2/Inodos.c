@@ -103,7 +103,7 @@ void recorrerCarpeta(char* ruta, int tabuladores){
 }
 int calcularTotal(char* ruta){
 	
-    printf("ruta del total: %s\n",ruta);
+    
 	struct stat sb;
 	struct dirent *direntrada;
 	DIR *dir;
@@ -118,16 +118,13 @@ int calcularTotal(char* ruta){
 			exit(EXIT_FAILURE);
 		}
 
-	if(sb.st_size % 4000 > 200){
-            total += (sb.st_size / 4000)+1;
-        }else if(sb.st_size == 0){
-            total += sb.st_size /4000;
-        }else{
-            total += sb.st_size /4000;
-        }
+	
+        total += sb.st_blocks;
+
 
 	}
-	total *= 4;	
+	total *= 500;
+    total /= 1000;	
 	return total;
 }
 
