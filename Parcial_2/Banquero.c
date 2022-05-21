@@ -25,12 +25,13 @@
 #define SEMAFORO_CLIENTE 0
 #define SEMAFORO_BANCO 1
 #define NUM_MAX_CLIENTES 5
-#define CANTIDAD_ITERACIONES 40
+#define CANTIDAD_ITERACIONES 100
 
 typedef struct mem {
 	int turno;
 	int numeroTransaccion;
 	int prestamoClientes[NUM_MAX_CLIENTES];
+	int necesidadClientes[NUM_MAX_CLIENTES];
 	int ultimaPeticion;
 	int efectivo;
 } memoria;
@@ -84,10 +85,9 @@ int main(int argC, char *argV[]) {
 	fscanf(archivo, "%d", &numeroClientes);
 
 	// Leer necesidad de clientes
-	int necesidadClientes[numeroClientes];
 	int demandaClientes[numeroClientes];
 	for (int i = 0; i < numeroClientes; i++)
-		fscanf(archivo, "%d ", &necesidadClientes[i]);
+		fscanf(archivo, "%d ", &global->necesidadClientes[i]);
 
 	fclose(archivo);
 
@@ -130,8 +130,14 @@ int main(int argC, char *argV[]) {
 						if (global->numeroTransaccion == 1)
 							global->prestamoClientes[j] = 0;
 
-						if (j == global->turno)
-							global->prestamoClientes[j]++;
+						if (j == global->turno) {
+							if (global->prestamoClientes[j] == global->necesidadClientes[j]) {
+								global->efectivo += global->necesidadClientes[j];
+								global->prestamoClientes[j] = 0;
+								global->necesidadClientes[j] = 0;
+							} else
+								global->prestamoClientes[j]++;
+						}
 						fprintf(archivo, "%2d ", global->prestamoClientes[j]);
 					}
 					fprintf(archivo, "| ");
@@ -140,17 +146,18 @@ int main(int argC, char *argV[]) {
 					for (int j = 0; j < (5 - numeroClientes); j++)
 						fprintf(archivo, "   ");
 					for (int j = 0; j < numeroClientes; j++)
-						fprintf(archivo, "%2d ", necesidadClientes[j]);
+						fprintf(archivo, "%2d ", global->necesidadClientes[j]);
 					fprintf(archivo, "| ");
 
 					// Imprimir demanda del cliente
 					for (int j = 0; j < (5 - numeroClientes); j++)
 						fprintf(archivo, "   ");
 					for (int j = 0; j < numeroClientes; j++)
-						fprintf(archivo, "%2d ", (necesidadClientes[j] - global->prestamoClientes[j]));
+						fprintf(archivo, "%2d ", (global->necesidadClientes[j] - global->prestamoClientes[j]));
 
 					// Imprimir Efectivo y Capital
-					global->efectivo--;
+					if (global->necesidadClientes[global->turno] != 0)
+						global->efectivo--;
 					fprintf(archivo, "| %8d ", global->efectivo);
 					fprintf(archivo, "| %7d ", capital);
 					
@@ -191,32 +198,32 @@ int main(int argC, char *argV[]) {
 	
 		// Quitar número de transacción
 		int nada;
-		fscanf(archivo, "%d - ", &nada);
+		fscanf(archivo, "%d | ", &nada);
 	
 		// Obtener Prestamo
 		for (int i = 0; i < numeroClientes; i++)
 			fscanf(archivo, "%d ", &global->prestamoClientes[i]);
-		fscanf(archivo, " - ");
+		fscanf(archivo, " | ");
 	
 		// Obtener Necesidad
 		for (int i = 0; i < numeroClientes; i++)
 			fscanf(archivo, "%d ", &nada);
-		fscanf(archivo, " - ");
+		fscanf(archivo, " | ");
 	
 		// Obtener Demanda
 		for (int i = 0; i < numeroClientes; i++)
-			fscanf(archivo, "%d", &demandaClientes[i]);
+			fscanf(archivo, "%d ", &demandaClientes[i]);
 
 		// Comprobar Estado
 		int estado = 0;
 		// comprobaciones básicas
-		if (necesidadClientes[global->ultimaPeticion] <= capital) {
-			if (global->prestamoClientes[global->ultimaPeticion] >= 0 && global->prestamoClientes[global->ultimaPeticion] <= necesidadClientes[global->ultimaPeticion]) {
-				if (0 <= global->efectivo && global->efectivo <= capital) {
-					// comprobación a futuro
-					if (comprobarDemandaEfectivo(numeroClientes, demandaClientes, global->efectivo)) {
-						estado = 1;
-					}
+		if (global->prestamoClientes[global->ultimaPeticion] <= global->necesidadClientes[global->ultimaPeticion]) {
+			printf("si p <= n\n");
+			if (0 <= global->efectivo && global->efectivo <= capital) {
+				printf("si e <= c\n");
+				// comprobación a futuro
+				if (comprobarDemandaEfectivo(numeroClientes, demandaClientes, global->efectivo) || global->prestamoClientes[global->ultimaPeticion] == global->necesidadClientes[global->ultimaPeticion]) {
+					estado = 1;
 				}
 			}
 		}
@@ -276,7 +283,7 @@ int obtenerClienteAleatorio(int numClientes) {
 int comprobarDemandaEfectivo(int tamaño, int *demandas, int efectivo) {
 	int resultado = 0;
 	for (int i = 0; i < tamaño; i++) {
-		if (demandas[i] <= efectivo)
+		if (demandas[i] > 0 && demandas[i] <= efectivo)
 			resultado = 1;
 	}
 	return resultado;
