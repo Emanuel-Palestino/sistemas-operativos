@@ -4,7 +4,7 @@
  * Forma de compilar: gcc Banquero.c -o Banquero
  * 
  * Programa que simula el algoritmo del Banquero de Dijkstra.
- * Para su funcionamiento se debe crear un archivo llamado Banto.txt, el cual
+ * Para su funcionamiento se debe crear un archivo llamado banco.txt, el cual
  * debe seguir la siguiente estructura:
  * Primera línea: La capital que tendrá el banco.
  * Segunda línea: El número de clientes que se tendrá.
