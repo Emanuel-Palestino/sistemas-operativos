@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/shm.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -30,20 +33,70 @@ int main() {
 		// Obtencioń del comando
 		fgets(comando, 255, stdin);
 		strcpy(comando, trim(comando));
+		if (strcmp(comando, "exit") == 0)
+			break;
+
+		// Memoria compartida
+		int idMemoria;
+		if ((idMemoria = shmget(IPC_PRIVATE, sizeof(operaciones), IPC_CREAT | 0600)) == -1) {
+			perror("Error en shmget");
+			exit(EXIT_FAILURE);
+		}
+		operaciones *ops = (operaciones *) shmat(idMemoria, 0, 0);
 
 		// Manejo de la cadena
-		operaciones *ops;
 		ops = obtencionOperaciones(comando);
 
-		// Imprimir operaciones
-		for (int i = 0; i < ops->size; i++) {
-			printf("comando: %s operador: %c ", ops->ops[i].comando, ops->ops[i].operador);
+		// Ejecutar comandos
+		int tuberia[2];
+		if (pipe(tuberia) == -1) {
+			perror("Error al crear tuberiaría");
+			exit(EXIT_FAILURE);
+		}
+		printf("procesos: %d\n", ops->size);
+		pid_t procesos[ops->size];
+		int estado;
+		for (int i = 0; i < ops->size - 1; i++) {
+			if ((procesos[i] = fork()) == 0) {
+				switch(ops->ops[i].operador) {
+					case '|':
+						ops->ops[i].entradaFD = 0;
+						ops->ops[i].salidaFD = tuberia[1];
+						ops->ops[i + 1].entradaFD = tuberia[0];
+						ops->ops[i + 1].salidaFD = 1;
+						break;
+				}
+				dup2(ops->ops[i].entradaFD, 0);
+				dup2(ops->ops[i].salidaFD, 1);
+				close(tuberia[0]);
+				close(tuberia[1]);
+				execlp(ops->ops[i].comando, ops->ops[i].comando, NULL);
+				exit(EXIT_SUCCESS);
+			} else {
+				wait(&estado);
+			}
+		}
+		if ((procesos[ops->size - 1] = fork()) == 0) {
+			switch(ops->ops[ops->size - 1].operador) {
+				case '|': printf("raro\n"); break;
+				default: printf("ultimo\n");
+			}
+			dup2(ops->ops[ops->size - 1].entradaFD, 0);
+			dup2(ops->ops[ops->size - 1].salidaFD, 1);
+			close(tuberia[0]);
+			close(tuberia[1]);
+			execlp(ops->ops[ops->size - 1].comando, ops->ops[ops->size - 1].comando, "shell.c", NULL);
+			exit(EXIT_SUCCESS);
+		} else {
+			wait(&estado);
 		}
 
 		if (ops->size)
 			printf("\n");
 
-	} while(strcmp(comando, "exit") != 0);
+		shmdt(ops);
+
+	} while(1);
 
 	exit(EXIT_SUCCESS);
 }
@@ -52,9 +105,7 @@ void agregarOperacion(operaciones *ops, ejecucion nueva) {
 	ejecucion *aux;
 	aux = ops->ops;
 	ops->size++;
-	printf("antes\n");
 	ops->ops = (ejecucion *) malloc(sizeof(ejecucion) * ops->size);
-	printf("despues\n");
 	for (int i = 0; i < ops->size - 1; i++)
 		ops->ops[i] = aux[i];
 	ops->ops[ops->size - 1] = nueva;
