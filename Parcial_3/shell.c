@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <sys/shm.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -36,13 +35,7 @@ int main() {
 		if (strcmp(comando, "exit") == 0)
 			break;
 
-		// Memoria compartida
-		int idMemoria;
-		if ((idMemoria = shmget(IPC_PRIVATE, sizeof(operaciones), IPC_CREAT | 0600)) == -1) {
-			perror("Error en shmget");
-			exit(EXIT_FAILURE);
-		}
-		operaciones *ops = (operaciones *) shmat(idMemoria, 0, 0);
+		operaciones *ops;
 
 		// Manejo de la cadena
 		ops = obtencionOperaciones(comando);
@@ -50,21 +43,27 @@ int main() {
 		// Ejecutar comandos
 		int tuberia[2];
 		if (pipe(tuberia) == -1) {
-			perror("Error al crear tuberiaría");
+			perror("Error al crear tuberia");
 			exit(EXIT_FAILURE);
 		}
-		printf("procesos: %d\n", ops->size);
 		pid_t procesos[ops->size];
 		int estado;
 		for (int i = 0; i < ops->size - 1; i++) {
 			if ((procesos[i] = fork()) == 0) {
+				// Revisar operador derecho
 				switch(ops->ops[i].operador) {
 					case '|':
 						ops->ops[i].entradaFD = 0;
 						ops->ops[i].salidaFD = tuberia[1];
-						ops->ops[i + 1].entradaFD = tuberia[0];
-						ops->ops[i + 1].salidaFD = 1;
 						break;
+				}
+				// Revisar operador izquierdo
+				if (i > 0) {
+					switch(ops->ops[i - 1].operador) {
+						case '|':
+							ops->ops[i].entradaFD = tuberia[0];
+							break;
+					}
 				}
 				dup2(ops->ops[i].entradaFD, 0);
 				dup2(ops->ops[i].salidaFD, 1);
@@ -77,9 +76,13 @@ int main() {
 			}
 		}
 		if ((procesos[ops->size - 1] = fork()) == 0) {
-			switch(ops->ops[ops->size - 1].operador) {
-				case '|': printf("raro\n"); break;
-				default: printf("ultimo\n");
+			// Revisar operador izquierdo
+			if (ops->size > 1) {
+				switch(ops->ops[ops->size - 2].operador) {
+					case '|':
+						ops->ops[ops->size - 1].entradaFD = tuberia[0];
+						break;
+				}
 			}
 			dup2(ops->ops[ops->size - 1].entradaFD, 0);
 			dup2(ops->ops[ops->size - 1].salidaFD, 1);
@@ -90,11 +93,6 @@ int main() {
 		} else {
 			wait(&estado);
 		}
-
-		if (ops->size)
-			printf("\n");
-
-		shmdt(ops);
 
 	} while(1);
 
@@ -144,7 +142,8 @@ operaciones *obtencionOperaciones(char *linea) {
 		ops->ops[i].operador = lineaAux[index];
 		strcpy(ops->ops[i].comando, trim(ops->ops[i].comando));
 	}
-	strcpy(ops->ops[ops->size - 1].comando, trim(ops->ops[ops->size - 1].comando));
+	char *temp = strdup(ops->ops[ops->size - 1].comando);
+	strcpy(ops->ops[ops->size - 1].comando, trim(temp));
 
 	return ops;
 }
