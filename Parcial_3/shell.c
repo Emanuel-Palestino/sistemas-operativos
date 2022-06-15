@@ -7,6 +7,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define tamañoEntrada 255
 #define operadores "<>|"
@@ -17,6 +19,7 @@ typedef struct {
 	char comando[tamañoEntrada / 2];
 	int entradaFD;
 	int salidaFD;
+	int esArchivo;
 } ejecucion;
 
 typedef struct {
@@ -72,6 +75,15 @@ int main() {
 						ops->ops[i + 1].entradaFD = tuberia[0];
 						ops->ops[i + 1].salidaFD = 1;
 						break;
+					case '<':
+						ops->ops[i + 1].esArchivo = 1;
+						// Abrir archivo
+						int salida = open(ops->ops[i + 1].comando, O_RDONLY, 0600);
+						ops->ops[i].entradaFD = salida;
+						if (ops->ops[i + 1].operador != ' ')
+						ops->ops[i].salidaFD = 1;
+						break;
+
 				}
 				// Cambiar entradas y salidas estandar
 				dup2(ops->ops[i].entradaFD, 0);
@@ -80,14 +92,16 @@ int main() {
 				close(tuberia[1]);
 
 				// Ejecutar comando
-				execlp(ops->ops[i].comando, ops->ops[i].comando, NULL);
+				if (execlp(ops->ops[i].comando, ops->ops[i].comando, NULL) == -1) {
+					printf("Ocurrió un Error");
+				}
 				exit(EXIT_SUCCESS);
 			} else
 				wait(&estado);
 		}
 
 		// Ejecutar el último comando
-		if ((procesos[ops->size - 1] = fork()) == 0) {
+		if (!ops->ops[ops->size - 1].esArchivo && (procesos[ops->size - 1] = fork()) == 0) {
 			// Cambiar entradas y salidas estandar
 			dup2(ops->ops[ops->size - 1].entradaFD, 0);
 			dup2(ops->ops[ops->size - 1].salidaFD, 1);
@@ -95,7 +109,9 @@ int main() {
 			close(tuberia[1]);
 
 			// Ejecutar comando
-			execlp(ops->ops[ops->size - 1].comando, ops->ops[ops->size - 1].comando, NULL);
+			if (execlp(ops->ops[ops->size - 1].comando, ops->ops[ops->size - 1].comando, NULL) == -1) {
+				printf("ocurrió un error");
+			}
 			exit(EXIT_SUCCESS);
 		} else
 			wait(&estado);
@@ -132,6 +148,7 @@ int obtencionOperaciones(operaciones *ops, char *linea) {
 			nueva.entradaFD = 0;
 			nueva.salidaFD = 1;
 			nueva.operador = ' ';
+			nueva.esArchivo = 0;
 			agregarOperacion(ops, nueva);
 		}
 	}
