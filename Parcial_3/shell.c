@@ -81,6 +81,12 @@ int main() {
 					ops->ops[i + 1].esArchivo = 1;
 					// Abrir archivo
 					int entrada = open(ops->ops[i + 1].comando, O_RDONLY, 0600);
+					if (entrada == -1){
+						char info[tamañoEntrada];
+						sprintf(info, "=MiShell= Error en %s", ops->ops[i + 1].comando);
+						perror(info);
+						exit(EXIT_FAILURE);
+					}
 					ops->ops[i].entradaFD = entrada;
 					ops->ops[i].salidaFD = 1;
 					break;
@@ -105,7 +111,8 @@ int main() {
 
 				// Ejecutar comando
 				if (execlp(ops->ops[i].comando, ops->ops[i].comando, NULL) == -1) {
-					printf("Ocurrió un Error");
+					perror("=MiShell= Error");
+					exit(EXIT_FAILURE);
 				}
 				exit(EXIT_SUCCESS);
 			} else
