@@ -6,7 +6,6 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <ctype.h>
-#include <sys/shm.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -42,13 +41,7 @@ int main() {
 		if (strcmp(comando, "exit") == 0)
 			break;
 
-		// Creación de memoria compartida
-		int idMemoria;
-		if ((idMemoria = shmget(IPC_PRIVATE, sizeof(operaciones), IPC_CREAT | 0600)) == -1) {
-			perror("Error en shmget");
-			exit(EXIT_FAILURE);
-		}
-		operaciones *ops = (operaciones *) shmat(idMemoria, 0, 0);
+		operaciones *ops = (operaciones *) malloc(sizeof(operaciones));
 
 		// Manejo del comando ingresado
 		obtencionOperaciones(ops, comando);
@@ -119,8 +112,6 @@ int main() {
 				wait(&estado);
 		}
 
-		// Eliminar memoria compartida
-		shmdt(ops);
 	} while(1);
 
 	exit(EXIT_SUCCESS);
