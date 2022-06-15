@@ -64,27 +64,46 @@ int main() {
 		pid_t procesos[ops->size];
 		int estado;
 
-		// Ejecutar los n - 1 comandos
-		for (int i = 0; i < ops->size - 1; i++) {
-			if ((procesos[i] = fork()) == 0) {
-				// Revisar operador
-				switch(ops->ops[i].operador) {
-					case '|':
-						ops->ops[i].entradaFD = 0;
-						ops->ops[i].salidaFD = tuberia[1];
-						ops->ops[i + 1].entradaFD = tuberia[0];
-						ops->ops[i + 1].salidaFD = 1;
+		// Actualizar entradas y salidas
+		for (int i = 0; i < ops->size; i++) {
+			int indiceComandoAnterior = -1;
+			if (ops->ops[i].esArchivo == 1) {
+				for(int j = i - 1; j >= 0; j--) {
+					if(ops->ops[j].esArchivo == 0) {
+						indiceComandoAnterior = j;
 						break;
-					case '<':
-						ops->ops[i + 1].esArchivo = 1;
-						// Abrir archivo
-						int salida = open(ops->ops[i + 1].comando, O_RDONLY, 0600);
-						ops->ops[i].entradaFD = salida;
-						if (ops->ops[i + 1].operador != ' ')
-						ops->ops[i].salidaFD = 1;
-						break;
-
+					}
 				}
+			} else
+				indiceComandoAnterior = i;
+
+			// Revisar operador
+			switch(ops->ops[i].operador) {
+				case '|':
+					ops->ops[indiceComandoAnterior].salidaFD = tuberia[1];
+					ops->ops[i + 1].entradaFD = tuberia[0];
+					ops->ops[i + 1].salidaFD = 1;
+					break;
+				case '<':
+					ops->ops[i + 1].esArchivo = 1;
+					// Abrir archivo
+					int entrada = open(ops->ops[i + 1].comando, O_RDONLY, 0600);
+					ops->ops[i].entradaFD = entrada;
+					ops->ops[i].salidaFD = 1;
+					break;
+				case '>':
+					ops->ops[i + 1].esArchivo = 1;
+					int salida = open(ops->ops[i + 1].comando, O_CREAT|O_WRONLY|O_TRUNC, 0600);
+					ops->ops[indiceComandoAnterior].salidaFD = salida;
+					break;
+			}
+		}
+
+		// Ejecutar procesos
+		for (int i = 0; i < ops->size; i++) {
+			if (ops->ops[i].esArchivo == 1)
+				continue;
+			if ((procesos[i] = fork()) == 0) {
 				// Cambiar entradas y salidas estandar
 				dup2(ops->ops[i].entradaFD, 0);
 				dup2(ops->ops[i].salidaFD, 1);
@@ -99,22 +118,6 @@ int main() {
 			} else
 				wait(&estado);
 		}
-
-		// Ejecutar el último comando
-		if (!ops->ops[ops->size - 1].esArchivo && (procesos[ops->size - 1] = fork()) == 0) {
-			// Cambiar entradas y salidas estandar
-			dup2(ops->ops[ops->size - 1].entradaFD, 0);
-			dup2(ops->ops[ops->size - 1].salidaFD, 1);
-			close(tuberia[0]);
-			close(tuberia[1]);
-
-			// Ejecutar comando
-			if (execlp(ops->ops[ops->size - 1].comando, ops->ops[ops->size - 1].comando, NULL) == -1) {
-				printf("ocurrió un error");
-			}
-			exit(EXIT_SUCCESS);
-		} else
-			wait(&estado);
 
 		// Eliminar memoria compartida
 		shmdt(ops);
