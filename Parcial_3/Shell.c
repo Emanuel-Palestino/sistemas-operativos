@@ -1,4 +1,15 @@
-// Programa shell
+/*
+ * Shell.c
+ *
+ * Forma de compilar: gcc Shell.c -o Shell
+ * 
+ * Interprete de comandos para linux.
+ * Puede enlazar n proceso mediante tuberías, modificando las entradas
+ * y salidas estandar necesarias.
+ *
+ * CCBY: Palestino Hernández Emanuel
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +37,9 @@ typedef struct {
 	int size;
 } operaciones;
 
+// Función que obtiene todos los procesos a ejecutar de la linea de comandos
 int obtencionOperaciones(operaciones *, char *);
+// Elimina todos los espacios que se encuentran al principio y el final de una cadena
 char *trim(char *);
 
 int main() {
