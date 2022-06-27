@@ -1,6 +1,22 @@
+/*
+ * BarberoDormilon.c
+ *
+ * Forma de compilar: gcc BarberoDormilon.c -o BarberoDormilon
+ *
+ * Modo de Uso: BarberoDormilon <numero de clientes>
+ * Para ejecutarlo hace falta pasarle un parámetro que representa el número
+ * de clientes que el barbero atenderá.
+ *
+ * Programa que simula y resuelve el problema de el Barbero Dormilon
+ *
+ * CCBY: Palestino Hernández Emanuel
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
