@@ -5,18 +5,18 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define MAX_CLIENTES 25
+#define MAX_CLIENTES 30
 #define SILLAS_ESPERA 4
 
-void *cliente(void *num);
-void *barbero(void *num);
+void *cliente(void *numero);
+void *barbero(void *numero);
 
 sem_t barberoListo;
-sem_t sillasAccesibles;
+sem_t sillasEspera;
+sem_t sillaBarbero;
 sem_t clientes;
 
-int sillasLibres = SILLAS_ESPERA;
-int todosAtendidos = 0;
+int hayClientes = 1;
 
 int main(int argC, char *argV[]) {
 	pthread_t barberoHilo;
@@ -25,7 +25,7 @@ int main(int argC, char *argV[]) {
 	int numClientes;
 
 	if (argC != 2) {
-		printf("Faltan comandos. Uso: BarberoDormilon <numero clientes>\n");
+		printf("Faltan comandos. Para ejecutar: BarberoDormilon <numero clientes>\n");
 		exit(EXIT_SUCCESS);
 	}
 
@@ -40,7 +40,8 @@ int main(int argC, char *argV[]) {
 
 	// Iniciar semáforos
 	sem_init(&barberoListo, 0, 0);
-	sem_init(&sillasAccesibles, 0, 1);
+	sem_init(&sillaBarbero, 0, 0);
+	sem_init(&sillasEspera, 0, SILLAS_ESPERA);
 	sem_init(&clientes, 0, 0);
 
 	// Barbero
@@ -48,7 +49,7 @@ int main(int argC, char *argV[]) {
 
 	int numC[MAX_CLIENTES];
 	for (int i = 0; i < MAX_CLIENTES; i++)
-		numC[i] = i;
+		numC[i] = i + 1;
 
 	// Clientes
 	pthread_attr_t attr;
@@ -60,43 +61,41 @@ int main(int argC, char *argV[]) {
 	for (int i = 0; i < numClientes; i++)
 		pthread_join(clientesHilos[i], NULL);
 
-	todosAtendidos = 1;
-	// Despierta el barbero
-	sem_post(&barberoListo);
+	hayClientes = 0;
+	sem_post(&clientes);
 
 	pthread_join(barberoHilo, NULL);
-
 	exit(EXIT_SUCCESS);
 }
 
-void *cliente(void *number) {
-	int num = *(int *) number;
+void *cliente(void *numero) {
+	int numeroCliente = *(int *) numero;
 
-	sem_wait(&sillasAccesibles);
-	if (sillasLibres > 0) {
-		sillasLibres--;
-		printf("Cliente %d esperando\n", num);
-		sem_post(&clientes);
-		sem_post(&sillasAccesibles);
-		sem_wait(&barberoListo);
-		printf("Cortando el cabello al cliente %d\n", num);
-	} else {
-		sem_post(&sillasAccesibles);
-		printf("El cliente %d se va porque no hay sillas para esperar\n", num);
-	}
+	sem_wait(&sillasEspera);
+	printf("Cliente %d esperando al barbero\n", numeroCliente);
+	sem_post(&clientes);
+
+	sem_wait(&barberoListo);
+	printf("BARBERO cortando el cabello al cliente %d\n", numeroCliente);
+	sem_post(&sillaBarbero);
 
 	pthread_exit(0);
 }
 
-void *barbero(void *num) {
-	while(!todosAtendidos) {
-		printf("El barbero está durmiendo\n");
+void *barbero(void *numero) {
+	while(hayClientes) {
+		printf("BARBERO DURMIENDO\n");
 		sem_wait(&clientes);
-		sem_wait(&sillasAccesibles);
-		sillasLibres++;
+		if (!hayClientes)
+			break;
+		printf("BARBERO DESPIERTO\n");
 		sem_post(&barberoListo);
-		sem_post(&sillasAccesibles);
+
+		sem_wait(&sillaBarbero);
+		printf("BARBERO TERMINÓ DE CORTAR\n");
+
+		sem_post(&sillasEspera);
 	}
-	printf("---El barbero cierra la barbería---\n");
+	printf("---El barbero cierra la barbería (se queda dormido)---\n");
 	pthread_exit(0);
 }
